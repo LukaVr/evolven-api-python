@@ -1,4 +1,5 @@
 import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
+import aiohttp
 
 import json
 import time
@@ -15,6 +16,7 @@ from .res.api_result import ApiResultObject
 from .res.blended import Blended
 from .res.policy import Policy
 from .res.search import Search
+from .res.stream_agent import StreamAgent
 
 
 
@@ -51,6 +53,7 @@ class EvolvenAPI():
         self.Blended        = Blended(self)
         self.Policy         = Policy(self)
         self.Search         = Search(self)
+        self.StreamAgent    = StreamAgent(self)
 
         if session_key is None:
             s_key = self.Login.login()
@@ -89,6 +92,33 @@ class EvolvenAPI():
         return url
         
 
+    async def arequest(self, action, parameters, **kwargs):
+        """
+        Async generator for streaming responses.
+        Yields each JSON object as it arrives.
+        """
+        url = self._get_api_url(action)
+        querystring = {}
+
+        if not self.session_key_self_assigned:
+            querystring.update({"EvolvenSessionKey": self.session_key})
+        else:
+            querystring.update({"user": self.username, "pass": self.password})
+
+        querystring.update(parameters)
+        querystring.update(kwargs)
+        url += "&" + urllib.parse.urlencode(querystring)
+
+        if self.debug:
+            print(f"Streaming URL: {url}")
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=120) as resp:
+                async for line_bytes in resp.content:
+                    line = line_bytes.decode('ascii', 'ignore').strip()
+                    if line:
+                        yield line
+    
     def request(self, action, parameters, records_path=None, return_type=None, return_values=True, **kwargs):
         
         url = self._get_api_url(action)

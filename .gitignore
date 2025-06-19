@@ -33,6 +33,7 @@ htmlcov
 nosetests.xml
 htmlcov
 coverage.xml
+testing/
 
 # PyCharm data
 .idea
@@ -45,6 +46,7 @@ coverage.xml
 
 #Environment
 env
+.venv
 .python-version
 
 violations.flake8.txt
